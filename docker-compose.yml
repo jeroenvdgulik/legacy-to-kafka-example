@@ -1,0 +1,40 @@
+version: "3"
+
+services:
+    php:
+        build:
+            context: ./
+            dockerfile: docker/php7-fpm/Dockerfile
+            args:
+                TIMEZONE: ${TIMEZONE}
+        volumes:
+            - ./:/var/www:cached
+        environment:
+          - TIMEZONE
+          - KAFKA_URL
+          - KAFKA_DEFAULT_TOPIC
+    zookeeper:
+        image: zookeeper:3.4
+        healthcheck:
+            test: echo stat | nc localhost 2181
+            interval: 1s
+            timeout: 5s
+            retries: 10
+        logging:
+          driver: none
+    kafka:
+        image: confluentinc/cp-kafka:latest
+        depends_on:
+            - zookeeper
+        environment:
+            KAFKA_BROKER_ID: 1
+            KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+            KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+            KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+        healthcheck:
+            test: nc -z localhost 9092
+            interval: 1st
+            timeout: 5s
+            retries: 10
+        logging:
+          driver: none
